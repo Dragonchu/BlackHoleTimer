@@ -1,0 +1,36 @@
+{
+  "name": "black-hole-timer",
+  "version": "1.0.0",
+  "description": "A timer that use black hole to consume seconds",
+  "main": "main.js",
+  "directories": {
+    "doc": "doc"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 5173"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dragonchu/BlackHoleTimer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Dragonchu/BlackHoleTimer/issues"
+  },
+  "homepage": "https://github.com/Dragonchu/BlackHoleTimer#readme",
+  "type": "module",
+  "private": "true",
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "vite": "^7.1.5"
+  },
+  "dependencies": {
+    "gsap": "^3.13.0",
+    "vue": "^3.5.21"
+  }
+}
