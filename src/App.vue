@@ -88,7 +88,8 @@ function splitClockToParticles(totalSeconds) {
 		const p = document.createElement('div');
 		p.className = 'particle';
 		particles.value.appendChild(p);
-		gsap.set(p, { x: seed.x, y: seed.y, xPercent: -50, yPercent: -50 });
+		const sizeScale = 0.8 + Math.random() * 0.8; // 0.8x - 1.6x
+		gsap.set(p, { x: seed.x, y: seed.y, xPercent: -50, yPercent: -50, scale: sizeScale });
 		list.push(p);
 	}
 
@@ -106,12 +107,12 @@ function splitClockToParticles(totalSeconds) {
 	const jitterX = Math.min(40, cellW * 0.35);
 	const jitterY = Math.min(40, cellH * 0.35);
 
-	gsap.to(spans, { opacity: 0, duration: 0.4, stagger: 0.02, ease: 'power2.out' });
-	gsap.fromTo(list, { scale: 0.6, opacity: 0 }, {
+	gsap.to(spans, { opacity: 0, duration: 0.35, stagger: 0.015, ease: 'power2.out' });
+	gsap.fromTo(list, { scale: (i, t) => gsap.getProperty(t, 'scale'), opacity: 0 }, {
 		scale: 1,
 		opacity: 1,
-		duration: 0.8,
-		stagger: { each: Math.min(0.0015, 0.6 / Math.max(1, list.length)), from: 'random' },
+		duration: 0.9,
+		stagger: { each: Math.min(0.0012, 0.5 / Math.max(1, list.length)), from: 'random' },
 		ease: 'power3.out',
 		x: (i) => {
 			const col = i % cols;
@@ -136,31 +137,70 @@ function circlePath(cx, cy, r) {
 }
 
 async function orbitAndAbsorb(list, center) {
-	const absorbed = new Set();
-	list.forEach((p) => {
-		const x = gsap.getProperty(p, 'x');
-		const y = gsap.getProperty(p, 'y');
-		const r = Math.hypot(Number(x) - center.x, Number(y) - center.y);
-		const duration = gsap.utils.clamp(6, 18, gsap.utils.mapRange(40, 260, 18, 6, r));
-		gsap.to(p, { motionPath: { path: circlePath(center.x, center.y, r), alignOrigin: [0.5, 0.5] }, duration, repeat: -1, ease: 'none' });
+	// Irregular swarm orbit with breathing radius and noise drift
+	const setters = list.map((p) => ({
+		setX: gsap.quickSetter(p, 'x', 'px'),
+		setY: gsap.quickSetter(p, 'y', 'px')
+	}));
+	const states = list.map((p) => {
+		const x = Number(gsap.getProperty(p, 'x'));
+		const y = Number(gsap.getProperty(p, 'y'));
+		const baseR = Math.hypot(x - center.x, y - center.y);
+		return {
+			active: true,
+			angle: Math.random() * Math.PI * 2,
+			baseR,
+			radiusAmp: 30 + Math.random() * 120,
+			radiusSpeed: 0.2 + Math.random() * 0.6,
+			angleSpeed: (0.3 + Math.random() * 0.7) * (Math.random() < 0.5 ? -1 : 1),
+			xAmp: 10 + Math.random() * 60,
+			yAmp: 10 + Math.random() * 60,
+			xFreq: 0.3 + Math.random() * 0.8,
+			yFreq: 0.3 + Math.random() * 0.8,
+			phaseX: Math.random() * Math.PI * 2,
+			phaseY: Math.random() * Math.PI * 2
+		};
 	});
 
+	let time = 0;
+	const ticker = (dt) => {
+		// dt ~ 16ms units; normalize to seconds
+		const t = (dt || 16.7) / 1000;
+		time += t;
+		for (let i = 0; i < list.length; i++) {
+			const s = states[i];
+			if (!s.active) continue;
+			s.angle += s.angleSpeed * t;
+			const r = s.baseR + Math.sin(time * s.radiusSpeed + i * 0.19) * s.radiusAmp;
+			const nx = Math.sin(time * s.xFreq + s.phaseX) * s.xAmp;
+			const ny = Math.cos(time * s.yFreq + s.phaseY) * s.yAmp;
+			const x = center.x + Math.cos(s.angle) * r + nx;
+			const y = center.y + Math.sin(s.angle) * r + ny;
+			setters[i].setX(x);
+			setters[i].setY(y);
+		}
+	};
+	gsap.ticker.add(ticker);
+
+	const absorbed = new Set();
 	for (let i = 0; i < list.length; i++) {
 		await new Promise(r => setTimeout(r, 1000));
 		let target = null, best = Infinity;
 		for (let j = 0; j < list.length; j++) {
-			if (absorbed.has(j)) continue;
-			const p = list[j];
-			const x = Number(gsap.getProperty(p, 'x'));
-			const y = Number(gsap.getProperty(p, 'y'));
+			if (absorbed.has(j) || !states[j].active) continue;
+			const x = Number(gsap.getProperty(list[j], 'x'));
+			const y = Number(gsap.getProperty(list[j], 'y'));
 			const d = Math.hypot(x - center.x, y - center.y);
 			if (d < best) { best = d; target = j; }
 		}
 		if (target == null) continue;
 		absorbed.add(target);
+		states[target].active = false;
 		const p = list[target];
-		gsap.to(p, { x: center.x, y: center.y, scale: 0.2, opacity: 0, duration: 0.5, ease: 'power3.in', onComplete: () => p.remove() });
+		gsap.to(p, { x: center.x, y: center.y, scale: 0.3, opacity: 0, duration: 0.6, ease: 'power3.in', onComplete: () => p.remove() });
 	}
+
+	gsap.ticker.remove(ticker);
 }
 
 async function startTimerSequence() {
