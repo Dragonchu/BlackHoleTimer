@@ -97,10 +97,10 @@ function splitClockToParticles(totalSeconds) {
 	const cy = stageRect.top + stageRect.height / 2;
 
 	// Screen-fill distribution using aspect-correct grid with slight jitter
-	const total = list.length;
+	const particleCount = list.length;
 	const aspect = stageRect.width / stageRect.height;
-	const cols = Math.ceil(Math.sqrt(total * aspect));
-	const rows = Math.ceil(total / cols);
+	const cols = Math.ceil(Math.sqrt(particleCount * aspect));
+	const rows = Math.ceil(particleCount / cols);
 	const cellW = stageRect.width / cols;
 	const cellH = stageRect.height / rows;
 	const jitterX = Math.min(40, cellW * 0.35);
