@@ -95,18 +95,36 @@ function splitClockToParticles(totalSeconds) {
 	const stageRect = stage.value.getBoundingClientRect();
 	const cx = stageRect.left + stageRect.width / 2;
 	const cy = stageRect.top + stageRect.height / 2;
-	const minR = Math.min(stageRect.width, stageRect.height) * 0.22;
-	const maxR = Math.min(stageRect.width, stageRect.height) * 0.44;
+
+	// Screen-fill distribution using aspect-correct grid with slight jitter
+	const total = list.length;
+	const aspect = stageRect.width / stageRect.height;
+	const cols = Math.ceil(Math.sqrt(total * aspect));
+	const rows = Math.ceil(total / cols);
+	const cellW = stageRect.width / cols;
+	const cellH = stageRect.height / rows;
+	const jitterX = Math.min(40, cellW * 0.35);
+	const jitterY = Math.min(40, cellH * 0.35);
 
 	gsap.to(spans, { opacity: 0, duration: 0.4, stagger: 0.02, ease: 'power2.out' });
 	gsap.fromTo(list, { scale: 0.6, opacity: 0 }, {
 		scale: 1,
 		opacity: 1,
-		duration: 0.6,
-		stagger: { each: Math.min(0.002, 0.7 / Math.max(1, list.length)), from: 'random' },
-		ease: 'power2.out',
-		x: (i) => { const a = (i / list.length) * Math.PI * 2 * 4 + Math.random() * 0.6; const r = minR + (maxR - minR) * Math.random(); return cx + Math.cos(a) * r; },
-		y: (i) => { const a = (i / list.length) * Math.PI * 2 * 4 + Math.random() * 0.6; const r = minR + (maxR - minR) * Math.random(); return cy + Math.sin(a) * r; }
+		duration: 0.8,
+		stagger: { each: Math.min(0.0015, 0.6 / Math.max(1, list.length)), from: 'random' },
+		ease: 'power3.out',
+		x: (i) => {
+			const col = i % cols;
+			const row = Math.floor(i / cols);
+			const baseX = stageRect.left + col * cellW + cellW * 0.5;
+			return baseX + (Math.random() * 2 - 1) * jitterX;
+		},
+		y: (i) => {
+			const col = i % cols;
+			const row = Math.floor(i / cols);
+			const baseY = stageRect.top + row * cellH + cellH * 0.5;
+			return baseY + (Math.random() * 2 - 1) * jitterY;
+		}
 	});
 
 	return { list, center: { x: cx, y: cy } };
