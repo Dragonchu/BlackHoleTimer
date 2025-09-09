@@ -102,9 +102,8 @@
 			const seed = charPositions[i % Math.max(charPositions.length, 1)] || { x: originX, y: originY };
 			const p = document.createElement('div');
 			p.className = 'particle';
-			p.style.left = `${seed.x}px`;
-			p.style.top = `${seed.y}px`;
 			particlesEl.appendChild(p);
+			gsap.set(p, { x: seed.x, y: seed.y });
 			particles.push(p);
 		}
 
