@@ -9,28 +9,29 @@
     <link rel="stylesheet" href="/styles.css" />
     <script src="https://unpkg.com/gsap@3/dist/gsap.min.js" defer></script>
     <script src="https://unpkg.com/gsap@3/dist/MotionPathPlugin.min.js" defer></script>
-    <script src="/app.js" defer></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js" defer></script>
+    <script src="/main.js" defer></script>
   </head>
   <body>
-    <div id="app">
+    <div id="app" v-cloak>
       <div id="clock-wrapper">
-        <div id="clock"></div>
+        <div id="clock" ref="clock" v-text="nowText"></div>
       </div>
 
-      <div id="controls">
-        <button id="start-btn" aria-label="开始计时">开始计时</button>
+      <div id="controls" ref="controls">
+        <button id="start-btn" aria-label="开始计时" @click="startTimerSequence">开始计时</button>
         <div id="duration">
           <div class="label">分钟</div>
-          <div id="wheel" tabindex="0" role="spinbutton" aria-valuemin="1" aria-valuemax="180" aria-valuenow="15" aria-label="倒计时分钟设置">15</div>
+          <div id="wheel" ref="wheel" tabindex="0" role="spinbutton" :aria-valuemin="1" :aria-valuemax="180" :aria-valuenow="minutes" aria-label="倒计时分钟设置" @wheel.prevent="onWheelInput" @keydown="onKeySpin">{{ minutes }}</div>
         </div>
       </div>
 
-      <div id="stage" aria-hidden="true">
-        <div id="blackhole">
+      <div id="stage" ref="stage" aria-hidden="true">
+        <div id="blackhole" ref="blackhole">
           <div class="accretion"></div>
           <div class="core"></div>
         </div>
-        <div id="particles"></div>
+        <div id="particles" ref="particles"></div>
       </div>
     </div>
   </body>
