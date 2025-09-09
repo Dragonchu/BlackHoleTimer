@@ -8,6 +8,11 @@
 	const startBtn = document.getElementById('start-btn');
 	const wheelEl = document.getElementById('wheel');
 
+	// Register GSAP plugins if available
+	if (window.MotionPathPlugin) {
+		gsap.registerPlugin(MotionPathPlugin);
+	}
+
 	let nowClockTimer = null;
 	let countdownSeconds = 15 * 60; // default 15 minutes
 	let countdownActive = false;
@@ -160,32 +165,52 @@
 		gsap.fromTo('#controls', { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out' });
 	}
 
+	function circlePath(cx, cy, r) {
+		const p1x = cx + r;
+		const p1y = cy;
+		const p2x = cx - r;
+		const p2y = cy;
+		return `M ${p1x},${p1y} A ${r},${r} 0 1 0 ${p2x},${p2y} A ${r},${r} 0 1 0 ${p1x},${p1y}`;
+	}
+
 	async function runOrbitAndAbsorb(particles, center) {
 		// Orbiting loop: schedule per-second absorption
 		const total = particles.length;
 		const absorbed = new Set();
 
 		// Create perpetual orbits with varying angular velocities
-		particles.forEach((p, idx) => {
-			const radius = Math.hypot(
-				(parseFloat(p.style.left) || 0) - center.x,
-				(parseFloat(p.style.top) || 0) - center.y
-			);
-			const duration = gsap.utils.mapRange(40, 260, 18, 6, radius);
-			gsap.to(p, {
-				motionPath: {
-					path: {
-						type: 'circle',
-						cx: center.x,
-						cy: center.y,
-						r: radius
+		particles.forEach((p) => {
+			const px = gsap.getProperty(p, 'x');
+			const py = gsap.getProperty(p, 'y');
+			const radius = Math.hypot((px) - center.x, (py) - center.y);
+			const duration = gsap.utils.clamp(6, 18, gsap.utils.mapRange(40, 260, 18, 6, radius));
+			const path = circlePath(center.x, center.y, radius);
+			if (window.MotionPathPlugin) {
+				gsap.to(p, {
+					motionPath: {
+						path,
+						alignOrigin: [0.5, 0.5]
 					},
-					alignOrigin: [0.5, 0.5]
-				},
-				duration,
-				repeat: -1,
-				ease: 'none'
-			});
+					duration,
+					repeat: -1,
+					ease: 'none'
+				});
+			} else {
+				// Fallback: rotate around center using an angle tween
+				const state = { angle: Math.random() * Math.PI * 2, r: radius };
+				gsap.to(state, {
+					angle: state.angle + Math.PI * 2,
+					duration,
+					repeat: -1,
+					ease: 'none',
+					onUpdate: () => {
+						gsap.set(p, {
+							x: center.x + Math.cos(state.angle) * state.r,
+							y: center.y + Math.sin(state.angle) * state.r
+						});
+					}
+				});
+			}
 		});
 
 		// Absorb one particle per second
@@ -197,8 +222,8 @@
 			for (let j = 0; j < particles.length; j++) {
 				if (absorbed.has(j)) continue;
 				const p = particles[j];
-				const x = (parseFloat(p.style.left) || p._gsap?.x) ?? 0;
-				const y = (parseFloat(p.style.top) || p._gsap?.y) ?? 0;
+				const x = gsap.getProperty(p, 'x');
+				const y = gsap.getProperty(p, 'y');
 				const dx = (x) - center.x;
 				const dy = (y) - center.y;
 				const r = Math.hypot(dx, dy);
